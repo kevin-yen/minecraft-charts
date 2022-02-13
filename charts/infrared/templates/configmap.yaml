@@ -1,0 +1,13 @@
+{{- if .Values.configs }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "infrared.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "infrared.labels.standard" . | nindent 4 }}
+data:
+  {{- range $key, $val := .Values.configs }}
+  {{ $key }}: {{ $val | toJson | quote }}
+  {{- end }}
+{{- end }}

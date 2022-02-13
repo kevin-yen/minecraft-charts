@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "infrared.fullname" . }}
+  {{- if .Values.deploymentAnnotations }}
+  annotations:
+    {{- range $key, $value := .Values.deploymentAnnotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  labels:
+    {{- include "infrared.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ default 1 .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.strategyType }}
+  selector:
+    matchLabels:
+    {{- include "infrared.labels.matchLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+      {{- include "infrared.labels.matchLabels" . | nindent 8 }}
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- range $key, $value := .Values.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret }}
+      {{- end }}
+      {{- if .Values.securityContext }}
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
+      {{- if .Values.initContainers }}
+      initContainers:
+      {{- toYaml .Values.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ template "infrared.fullname" . }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        {{- if .Values.startupProbe }}
+        startupProbe: {{ toYaml .Values.startupProbe | nindent 10 }}
+        {{- end }}
+        livenessProbe: {{ toYaml .Values.livenessProbe | nindent 10 }}
+        readinessProbe: {{ toYaml .Values.readinessProbe | nindent 10 }}
+        env:
+        - name: INFRARED_CONFIG_PATH
+          value: {{ .Values.configsMountPath | quote }}
+        - name: INFRARED_RECEIVE_PROXY_PROTOCOL
+          value: {{ .Values.receiveProxyProtocol | quote }}
+        - name: INFRARED_API_ENABLED
+          value: {{ .Values.api.enabled | quote }}
+        - name: INFRARED_API_BIND
+          value: {{ .Values.api.bind | quote }}
+        - name: INFRARED_PROMETHEUS_ENABLED
+          value: {{ .Values.metrics.enabled | quote }}
+        - name: INFRARED_PROMETHEUS_BIND
+          value: {{ .Values.metrics.bind | quote }}
+      {{- range .Values.extraEnv }}
+        - name: {{ .name | quote }}
+          value: {{ .value | quote }}
+      {{- end }}
+        ports:
+        - name: minecraft
+          containerPort: 25565
+          protocol: TCP
+        volumeMounts:
+        - name: configs
+          mountPath: {{ .Values.configsMountPath }}
+        {{- range .Values.extraVolumes }}
+        {{- toYaml .volumeMounts | nindent 8 }}
+        {{- end }}
+      {{- if .Values.sidecarContainers }}
+      {{- toYaml .Values.sidecarContainers | nindent 6 }}
+      {{- end }}
+      volumes:
+      - name: configs
+      {{- if .Values.configs }}
+        configMap:
+            name: {{ template "infrared.fullname" . }}
+      {{- else }}
+        emptyDir: {}
+      {{- end }}
+      {{- range .Values.extraVolumes }}
+      {{- toYaml .volumes | nindent 6 }}
+      {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+    {{- end }}
+    {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+    {{- end }}
