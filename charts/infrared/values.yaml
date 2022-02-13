@@ -92,8 +92,8 @@ metrics:
 #           - hard
 #           - vers=4
 
-# configs: {}
-configs:
-  min.example.com:
-    domainName: mc.example.com
-    proxyTo: :8080
+configs: {}
+# configs:
+#   min.example.com:
+#     domainName: mc.example.com
+#     proxyTo: :8080
