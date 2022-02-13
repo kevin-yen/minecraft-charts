@@ -48,7 +48,6 @@ resources: {}
 ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
 ##
 startupProbe:
-  enabled: false
   failureThreshold: 30
   periodSeconds: 10
 livenessProbe:
